@@ -1,5 +1,9 @@
 # RELAY
 
+> ### ▶ Watch the demo
+>
+> **https://www.youtube.com/watch?v=cQ4ETcg4H5M**
+
 **A voice-native relay for people whose speech is not reliably understood.**
 
 RELAY listens to disordered speech, reconstructs what was most likely meant as a small set of ranked candidates, lets the speaker choose one, and speaks it in a consistent synthetic voice — with the speaker's own personal vocabulary (their name, their clinician, their medications) pronounced deterministically correctly, every time.
