@@ -30,3 +30,12 @@ npm-debug.log*
 # Cache
 .cache/
 .vite/
+
+# Python
+server/.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Local ledger DB — generated/seeded at runtime, not a deliverable
+server/relay.db
