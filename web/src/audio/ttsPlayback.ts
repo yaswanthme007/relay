@@ -1,5 +1,5 @@
 // Streaming MP3 playback queue, built on Web Audio AudioContext (not
-// <audio> tags — CLAUDE.md §4 requires sample-accurate timing and instant
+// <audio> tags — sample-accurate timing and instant
 // flush for later AT-2/AT-3 work, which <audio> can't give us).
 //
 // Rime's individual chunks are not guaranteed to be independently

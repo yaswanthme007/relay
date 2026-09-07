@@ -7,8 +7,8 @@
 // does that via page.addInitScript() *before* the app loads. For every
 // real user, `window.__relayEvidence` is simply undefined and every
 // function below is a no-op, so this has zero footprint on the normal
-// product path (CLAUDE.md / BUILD_PHASES.md Phase 8 §40: an evidence hook
-// must be isolated and incapable of silently affecting production).
+// product path: an evidence hook must be isolated and incapable of
+// silently affecting production.
 export interface HeardEntrySnapshot {
   time: string
   status: string

@@ -2,8 +2,8 @@
 application-level messages (speak/clear/heard_report) into Rime synthesis
 actions via server/rime_ws.py, and forwards Rime's streamed events back to
 the browser. The browser never sees Rime's protocol or RIME_API_KEY
-directly — only the documented application wire contract (BUILD_PHASES.md
-appendix, extended in Phase 7 with heard_report/chunk_discarded).
+directly — only the documented application wire contract, extended in
+Phase 7 with heard_report/chunk_discarded.
 
 Phase 7 adds: `kind: "holding"` on speak (floor-hold preload — bypasses
 confidence/prosody/ledger entirely, since a cached holding phrase is not a
@@ -13,7 +13,7 @@ this module just timestamps it and re-emits the already-documented
 heard_entry event; and forwarding rime_ws's per-late-chunk
 `chunk_discarded` signal as additional `context_cleared` updates, so the
 browser's discarded-chunk count reflects chunks that arrive *after* the
-first clear reply too (BUILD_PHASES.md Phase 7 §21, phase7 prompt §20).
+first clear reply too.
 
 Post-Phase-8 adds `kind: "preview"` — a Voice Ledger pronunciation check.
 It reads one ledger row (scoped to this connection's userId) and speaks
@@ -40,14 +40,14 @@ from server.voices import resolve_speaker
 
 
 def _now_hhmmss() -> str:
-    """HH:MM:SS, 24-hour — matches HeardEntry.time exactly (CLAUDE.md §2)."""
+    """HH:MM:SS, 24-hour — matches HeardEntry.time exactly."""
     return datetime.now().strftime("%H:%M:%S")
 
 
 async def _drain_and_close(client: RimeSpeechClient, task: "asyncio.Task | None", grace_seconds: float = 5.0) -> None:
     """Let an abandoned client's forward task keep running for a bounded
     grace period before closing the connection — used when a barge-in
-    replaces the active client (BUILD_PHASES.md Phase 7 fencing). That
+    replaces the active client (Phase 7 fencing). That
     forward task is the only thing still reading the old ws3 connection,
     and reading is what counts stale chunks (rime_ws.py's events()) and
     keeps pushing updated context_cleared messages to the browser for them
@@ -83,7 +83,7 @@ async def tts_endpoint(websocket: WebSocket) -> None:
 
     # Identifies whose ledger to inject from — a connection-time query param,
     # not a new message-body field, so the documented speak/clear message
-    # shapes stay exactly as Phase 4 defined them (BUILD_PHASES.md appendix).
+    # shapes stay exactly as Phase 4 defined them.
     user_id = websocket.query_params.get("userId")
 
     await websocket.accept()
@@ -153,7 +153,7 @@ async def tts_endpoint(websocket: WebSocket) -> None:
     async def forward_rime_events(client: RimeSpeechClient) -> None:
         """Runs concurrently with the browser receive loop below, pushing
         each Rime event to the browser the moment it arrives — never
-        accumulated server-side (CLAUDE.md §4)."""
+        accumulated server-side."""
         try:
             async for event in client.events():
                 if event["type"] == "chunk":
@@ -239,8 +239,8 @@ async def tts_endpoint(websocket: WebSocket) -> None:
                     # ledger row itself is never mutated by a preview.
                     synthesis_text = inject_pronunciations(entry.word, [entry])
                 elif speak_msg.kind == "holding":
-                    # Floor-hold preload (BUILD_PHASES.md Phase 7 / phase7
-                    # prompt §10): a cached conversational filler, not a
+                    # Floor-hold preload (Phase 7): a cached
+                    # conversational filler, not a
                     # candidate. It must never be confidence-gated, turned
                     # into a question, or run through ledger injection —
                     # doing so risks e.g. "<300>One moment?" or a phrase
@@ -251,7 +251,7 @@ async def tts_endpoint(websocket: WebSocket) -> None:
                     # Confidence -> delivery decision happens before anything
                     # else touches Rime. The server does not trust the browser
                     # alone to withhold speak() on a low-confidence candidate
-                    # (BUILD_PHASES.md Phase 6 §13) — SpeakMessage.confidence is
+                    # (Phase 6) — SpeakMessage.confidence is
                     # required, and a silent result stops here, unconditionally.
                     prosody = apply_prosody(speak_msg.text, speak_msg.confidence)
                     if not prosody.should_speak:

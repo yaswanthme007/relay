@@ -22,7 +22,7 @@ const WS_BASE = 'ws://localhost:8000'
 
 /* ─── Types ─────────────────────────────────────────────── */
 // Declared in ../lib/ledgerTypes so this page and its state helpers share
-// one declaration. Same fields, same types as before (CLAUDE.md §2).
+// one declaration. Same fields, same types as before.
 export type { LedgerEntry } from '../lib/ledgerTypes'
 
 const categoryLabels: Record<string, string> = {

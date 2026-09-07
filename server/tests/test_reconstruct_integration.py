@@ -1,4 +1,4 @@
-"""One real integration verification, per BUILD_PHASES.md Phase 3 test
+"""One real integration verification, per the Phase 3 test
 strategy: an actual Groq reconstruction call using the current verified
 model and the real API key from .env (never hardcoded, never placed in
 this file). Skipped automatically when no key is configured — this file

@@ -29,8 +29,8 @@ from server.models import Candidate
 # to deterministically stretch the reconstruction window so a floor-hold
 # phrase and a real barge-in race can both be reproduced against live
 # Rime, per RELAY_PLAYBOOK.md §5 AT-3's "inject a fixed 3000ms
-# reconstruction delay" (CLAUDE.md/BUILD_PHASES.md §40: isolated, and
-# incapable of silently affecting the normal path since it defaults off).
+# reconstruction delay". Isolated, and incapable of silently affecting
+# the normal path since it defaults off.
 _TEST_DELAY_ENV_VAR = "RELAY_TEST_RECONSTRUCT_DELAY_MS"
 
 GROQ_CHAT_URL = "https://api.groq.com/openai/v1/chat/completions"
@@ -88,7 +88,7 @@ async def _call_groq_json(prompt: str) -> str:
     """One call to the reconstruction model, JSON mode. Returns the raw
     string content of the model's reply (not yet parsed/validated). Isolated
     behind this function so unit tests can monkeypatch it without a network
-    call, per BUILD_PHASES.md Phase 3 test strategy."""
+    call, per the Phase 3 test strategy."""
     headers = {"Authorization": f"Bearer {settings.GROQ_API_KEY}"}
     body = {
         "model": RECONSTRUCTION_MODEL,

@@ -3,7 +3,7 @@
 // Measures, in a REAL browser (Playwright/Chromium), end-of-turn -> first
 // audible/scheduled output sample, using AudioContext.currentTime on both
 // ends (never a server timestamp) — RELAY_PLAYBOOK.md §5 AT-2,
-// CLAUDE.md §4, phase8 prompt §15/§25.
+// Measured on the AudioContext clock, never from network timestamps.
 //
 // Run: `node evidence/at2_latency_runner.js` (from evidence/, `npm install`
 // once first). Reads RIME_API_KEY/GROQ_API_KEY from the repo's .env via

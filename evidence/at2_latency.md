@@ -9,7 +9,7 @@ to <250ms across 30 trials.
 `end-of-turn -> first audible/scheduled output sample`, using
 `AudioContext.currentTime` on **both** ends, captured in a **real browser**
 (Chromium via Playwright) — never a server timestamp, never synthesis
-latency, never an HTTP/WebSocket message timestamp (CLAUDE.md §4).
+latency, never an HTTP/WebSocket message timestamp.
 
 - **End-of-turn** = the moment `window.__relayEvidence.turnEndAt` is set,
   which happens inside the mic-release click handler

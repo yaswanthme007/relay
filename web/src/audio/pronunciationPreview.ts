@@ -4,7 +4,7 @@
 // through the *existing* pipeline — /ws/tts -> server -> Rime mistv2 ->
 // audio_chunk -> TTSPlaybackQueue (Web Audio AudioContext). There is no
 // second TTS implementation, no second playback system, and no <audio>
-// tag anywhere in here (CLAUDE.md §4).
+// tag anywhere in here.
 //
 // It is deliberately a plain class rather than React state so the whole
 // idle -> loading -> playing -> idle state machine, and the repeated-click
@@ -49,7 +49,7 @@ export class PronunciationPreview {
   private state: PreviewState = IDLE_PREVIEW
   /** The contextId the server assigned to the in-flight preview, learned
    * from its first audio_chunk (speak() does not echo one synchronously —
-   * BUILD_PHASES.md appendix). */
+   * the documented wire contract). */
   private activeContextId: string | null = null
   /** Contexts superseded by a newer preview. A chunk already in flight
    * over the WebSocket when clear() was sent can still arrive afterwards;

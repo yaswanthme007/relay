@@ -1,8 +1,8 @@
 // Browser-facing WebSocket client for /ws/tts. Talks only the application
 // protocol (speak/clear/heard_report in, audio_chunk/synthesis_done/
 // context_cleared/heard_entry/error out) — never touches Rime directly,
-// never sees RIME_API_KEY. Matches the wire contract in BUILD_PHASES.md's
-// appendix and server/session_ws.py, extended in Phase 7 with heard_report
+// never sees RIME_API_KEY. Matches the documented wire contract and
+// server/session_ws.py, extended in Phase 7 with heard_report
 // (browser -> server: what was actually heard) and heard_entry (server ->
 // browser: the timestamped, documented HeardEntry built from that report).
 
@@ -100,7 +100,7 @@ export class TTSSocket {
 
   // confidence is required (Phase 6): the server enforces the silent
   // branch itself and must not depend on the caller remembering to omit
-  // speak() for a low-confidence candidate (BUILD_PHASES.md Phase 6 §13).
+  // speak() for a low-confidence candidate (Phase 6).
   // kind (Phase 7): 'holding' marks a floor-hold preload request — the
   // server bypasses confidence/prosody/ledger entirely for it.
   speak(text: string, voice: string, confidence: number, pauseHint?: number, kind?: 'candidate' | 'holding'): void {

@@ -1,5 +1,5 @@
 """Pydantic models. These mirror the frontend TypeScript interfaces exactly
-(CLAUDE.md §2) — the frontend is the contract, these models follow it, not
+— the frontend is the contract, these models follow it, not
 the reverse.
 
 Source of truth for each shape:
@@ -8,8 +8,9 @@ Source of truth for each shape:
   LedgerEntry  -> web/src/pages/LedgerPage.tsx
 
 Wire-contract models below (TurnResponse, the /ws/tts message shapes, and
-the ledger request/response bodies) mirror the appendix in BUILD_PHASES.md.
-No route implements them yet — Phase 1 registers only GET /health."""
+the ledger request/response bodies) mirror the documented /ws/tts and
+/api wire contract. No route implements them yet — Phase 1 registers only
+GET /health."""
 
 from typing import Literal, Optional
 
@@ -19,7 +20,7 @@ Situation = Literal["pharmacy", "clinic", "home", "phone"]
 LedgerCategory = Literal["name", "medication", "clinician", "location", "phrase"]
 HeardStatus = Literal["complete", "cut", "pending"]
 
-# HH:MM:SS, 24-hour, as used by HeardEntry.time (CLAUDE.md §2).
+# HH:MM:SS, 24-hour, as used by HeardEntry.time.
 TIME_PATTERN = r"^([01]\d|2[0-3]):[0-5]\d:[0-5]\d$"
 
 
@@ -55,7 +56,7 @@ class HealthResponse(BaseModel):
     status: Literal["ok"]
 
 
-# ─── Wire contract (documented shape, no route yet — BUILD_PHASES.md appendix) ───
+# ─── Wire contract (documented shape, no route yet) ─────────────────────────────
 
 
 class TurnResponse(BaseModel):
@@ -69,7 +70,7 @@ class SpeakMessage(BaseModel):
     voice: str
     # Phase 6: the server must be able to enforce the silent branch itself
     # rather than trusting the browser not to call speak() on a low-
-    # confidence candidate (BUILD_PHASES.md Phase 6 §13) — required, not
+    # confidence candidate — required, not
     # optional, since a missing value must never default to "speak anyway".
     confidence: float = Field(ge=0.0, le=1.0)
     pauseHint: Optional[int] = None
