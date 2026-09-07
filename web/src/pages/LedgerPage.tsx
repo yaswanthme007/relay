@@ -1,36 +1,29 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence, useInView } from 'framer-motion'
 import {
   Plus, Search, Check, AlertTriangle,
-  ChevronRight, Sparkles, FileText
+  ChevronRight, Sparkles, FileText, Mic, Square,
+  Volume2, Loader2, Trash2
 } from 'lucide-react'
+import { audioBufferToWav } from '../audio/wavEncode'
+import { TTSSocket } from '../audio/ttsSocket'
+import { TTSPlaybackQueue } from '../audio/ttsPlayback'
+import { PronunciationPreview, IDLE_PREVIEW, type PreviewState } from '../audio/pronunciationPreview'
+import { getOrCreateUserId, getVoiceName } from '../lib/identity'
+import type { LedgerEntry } from '../lib/ledgerTypes'
+import {
+  deriveLedgerStats, filterLedger, removeEntry,
+  deleteConfirmationMessage, requestDeleteEntry,
+} from '../lib/ledgerState'
 import './LedgerPage.css'
 
-/* ─── Types ─────────────────────────────────────────────── */
-interface LedgerEntry {
-  id: string
-  word: string
-  phoneme: string
-  category: 'name' | 'medication' | 'clinician' | 'location' | 'phrase'
-  covered: boolean
-  verified: boolean
-}
+const API_BASE = 'http://localhost:8000'
+const WS_BASE = 'ws://localhost:8000'
 
-/* ─── Mock ledger data ──────────────────────────────────── */
-const initialLedger: LedgerEntry[] = [
-  { id: '1', word: 'Ananya Sharma', phoneme: '{ah1nUn2yah sh1Arm2ah}', category: 'name', covered: false, verified: true },
-  { id: '2', word: 'Metformin', phoneme: '{m1Etf1OrmIn}', category: 'medication', covered: true, verified: true },
-  { id: '3', word: 'Levothyroxine', phoneme: '{l2Ev0othY1rOks2Een}', category: 'medication', covered: false, verified: true },
-  { id: '4', word: 'Atorvastatin', phoneme: '{ah1tOrv2ast1atIn}', category: 'medication', covered: true, verified: true },
-  { id: '5', word: 'Hydrochlorothiazide', phoneme: '{h1Ydr0okl1Or0othY1azYd}', category: 'medication', covered: false, verified: true },
-  { id: '6', word: 'Salbutamol', phoneme: '{s1albyUt1am0Ol}', category: 'medication', covered: false, verified: false },
-  { id: '7', word: 'Dr. Raghunathan', phoneme: '{d1Okt0Er r1Ag2Un1At2an}', category: 'clinician', covered: false, verified: true },
-  { id: '8', word: 'Dr. Mukherjee', phoneme: '{d1Okt0Er m1Uk2Erj2Ee}', category: 'clinician', covered: false, verified: true },
-  { id: '9', word: 'Maple Street Pharmacy', phoneme: '', category: 'location', covered: true, verified: false },
-  { id: '10', word: 'Repeat prescription', phoneme: '', category: 'phrase', covered: true, verified: false },
-  { id: '11', word: 'Sixty-day supply', phoneme: '{s1Ikst2Ee d1Ay s2Upl1Y}', category: 'phrase', covered: true, verified: true },
-  { id: '12', word: 'Five hundred milligrams', phoneme: '{f1Yv h1Undr2Ed m1Il2Igr2amz}', category: 'phrase', covered: true, verified: true },
-]
+/* ─── Types ─────────────────────────────────────────────── */
+// Declared in ../lib/ledgerTypes so this page and its state helpers share
+// one declaration. Same fields, same types as before (CLAUDE.md §2).
+export type { LedgerEntry } from '../lib/ledgerTypes'
 
 const categoryLabels: Record<string, string> = {
   name: 'Personal Name',
@@ -85,37 +78,221 @@ function CoverageRing({ covered, total }: { covered: number; total: number }) {
    LEDGER PAGE
    ═══════════════════════════════════════════════════════════ */
 export default function LedgerPage() {
-  const [ledger, setLedger] = useState(initialLedger)
+  const [ledger, setLedger] = useState<LedgerEntry[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
   const [newWord, setNewWord] = useState('')
   const [newCategory, setNewCategory] = useState<string>('medication')
+  const [recordingId, setRecordingId] = useState<string | null>(null)
+  const [ledgerError, setLedgerError] = useState<string | null>(null)
+  // Which term is currently being auditioned, and whether its audio is
+  // still being synthesized or already playing. idle -> loading -> playing
+  // -> idle, driven entirely by PronunciationPreview.
+  const [preview, setPreview] = useState<PreviewState>(IDLE_PREVIEW)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
-  const filtered = ledger.filter(entry => {
-    const matchesSearch = entry.word.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesCat = activeCategory ? entry.category === activeCategory : true
-    return matchesSearch && matchesCat
-  })
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const chunksRef = useRef<Blob[]>([])
+  const streamRef = useRef<MediaStream | null>(null)
 
-  const coveredCount = ledger.filter(e => e.covered).length
-  const verifiedCount = ledger.filter(e => e.verified).length
-  const uncoveredCount = ledger.length - coveredCount
-  const categories = Array.from(new Set(ledger.map(e => e.category)))
+  // Pronunciation preview runs on exactly the same infrastructure the
+  // Session page speaks with: one /ws/tts connection (the browser never
+  // reaches Rime itself, and never sees RIME_API_KEY) feeding the same
+  // AudioContext-based TTSPlaybackQueue. No second TTS path, no <audio>.
+  const audioContextRef = useRef<AudioContext | null>(null)
+  const playbackQueueRef = useRef<TTSPlaybackQueue | null>(null)
+  const socketRef = useRef<TTSSocket | null>(null)
+  const previewRef = useRef<PronunciationPreview | null>(null)
 
-  const handleAdd = () => {
-    if (!newWord.trim()) return
-    setLedger(prev => [...prev, {
-      id: Date.now().toString(),
-      word: newWord.trim(),
-      phoneme: '',
-      category: newCategory as LedgerEntry['category'],
-      covered: false,
-      verified: false,
-    }])
-    setNewWord('')
-    setShowAddForm(false)
+  const userId = getOrCreateUserId()
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/ledger?userId=${encodeURIComponent(userId)}`)
+      .then(res => {
+        if (!res.ok) throw new Error(`Backend returned ${res.status}`)
+        return res.json()
+      })
+      .then((data: LedgerEntry[]) => setLedger(data))
+      .catch(() => setLedgerError('Could not load the ledger. Check that the backend is running.'))
+  }, [userId])
+
+  // One /ws/tts connection for the life of the page. Preview audio arrives
+  // as ordinary audio_chunk/synthesis_done events and is played through
+  // TTSPlaybackQueue — the same Phase 4/7 playback path, unchanged.
+  // reportHeard() is never called here: a pronunciation audition is not
+  // conversational speech and must never enter the Heard Receipt.
+  useEffect(() => {
+    const audioContext = new AudioContext()
+    const queue = new TTSPlaybackQueue(audioContext)
+    const previewController = new PronunciationPreview(queue, setPreview)
+    audioContextRef.current = audioContext
+    playbackQueueRef.current = queue
+    previewRef.current = previewController
+
+    const socket = new TTSSocket(
+      `${WS_BASE}/ws/tts?userId=${encodeURIComponent(userId)}`,
+      event => {
+        if (event.type === 'audio_chunk') {
+          previewController.handleChunk(event.contextId, event.data)
+        } else if (event.type === 'synthesis_done') {
+          previewController.handleDone(event.contextId)
+        } else if (event.type === 'error') {
+          previewController.handleError()
+          setLedgerError(`Pronunciation preview failed: ${event.message}`)
+        }
+      },
+      () => {},
+    )
+    socket.connect()
+    socketRef.current = socket
+
+    return () => {
+      previewController.dispose()
+      socket.close()
+      socketRef.current = null
+      previewRef.current = null
+      void audioContext.close()
+    }
+  }, [userId])
+
+  // Every number and pill on this page is derived from `ledger` in one
+  // place, so adding or deleting a row updates the stats, the category
+  // counts and the visible rows together — no separate counters to keep
+  // in sync, and no page reload.
+  const filtered = filterLedger(ledger, searchQuery, activeCategory)
+  const stats = deriveLedgerStats(ledger)
+  const coveredCount = stats.covered
+  const verifiedCount = stats.verified
+  const uncoveredCount = stats.uncovered
+  const categories = stats.categories
+
+  const upsertEntry = (entry: LedgerEntry) => {
+    setLedger(prev => {
+      const exists = prev.some(e => e.id === entry.id)
+      return exists ? prev.map(e => (e.id === entry.id ? entry : e)) : [...prev, entry]
+    })
   }
+
+  const handleAdd = async () => {
+    const word = newWord.trim()
+    if (!word) return
+    setLedgerError(null)
+    try {
+      const res = await fetch(`${API_BASE}/api/ledger/entry?userId=${encodeURIComponent(userId)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ word, category: newCategory }),
+      })
+      if (!res.ok) throw new Error(`Backend returned ${res.status}`)
+      const entry: LedgerEntry = await res.json()
+      upsertEntry(entry)
+      setNewWord('')
+      setShowAddForm(false)
+    } catch {
+      setLedgerError('Could not add term. Check that the backend is running.')
+    }
+  }
+
+  // Click a term -> hear it. The server loads this entry from the database
+  // and, for a verified entry with a stored phoneme, speaks that
+  // `{phoneme}` string through Rime mistv2 — the exact pronunciation a
+  // real sentence would get. An unverified/pending entry is spoken as the
+  // plain word with Rime's own predicted pronunciation; nothing is
+  // fabricated and the entry is never silently marked verified.
+  //
+  // Repeated clicks: clicking the term that is already previewing is
+  // ignored (it plays out); clicking a different term cancels the current
+  // preview and starts the new one. Exactly one preview is ever in flight.
+  const handlePreview = useCallback((entry: LedgerEntry) => {
+    const controller = previewRef.current
+    const socket = socketRef.current
+    if (!controller || !socket) return
+    setLedgerError(null)
+    // Autoplay policy: a freshly-created AudioContext stays suspended until
+    // a user gesture resumes it. This click is that gesture.
+    void audioContextRef.current?.resume()
+    controller.request(socket, entry.id, entry.word, getVoiceName())
+  }, [])
+
+  // Delete a term so the same word can be added and re-recorded with a
+  // corrected pronunciation. A real delete server-side — the stored
+  // phoneme stops reaching synthesis and reconstruction immediately.
+  const handleDelete = useCallback(async (entry: LedgerEntry) => {
+    // Cancelling leaves the entry completely untouched — no request is
+    // sent and no local state changes.
+    if (!window.confirm(deleteConfirmationMessage(entry.word))) return
+
+    setLedgerError(null)
+    setDeletingId(entry.id)
+    try {
+      await requestDeleteEntry(API_BASE, userId, entry.id)
+      // The row is only removed once the server confirms it. Stats,
+      // category counts and filters all re-derive from this one update.
+      setLedger(prev => removeEntry(prev, entry.id))
+    } catch {
+      setLedgerError('Could not delete the term. Check that the backend is running.')
+    } finally {
+      setDeletingId(null)
+    }
+  }, [userId])
+
+  // Recording a term's correct pronunciation -> WAV -> POST /api/ledger/phonemize.
+  // Reuses the existing MediaRecorder capture pattern from SessionPage.tsx;
+  // WAV conversion happens client-side (server/ledger.py §29: Phonemize
+  // needs WAV, not the WebM/Opus MediaRecorder produces).
+  const handleToggleRecording = useCallback((entryId: string) => {
+    if (recordingId === entryId) {
+      setRecordingId(null)
+      mediaRecorderRef.current?.stop()
+      return
+    }
+    if (recordingId !== null) return // one recording at a time
+
+    setLedgerError(null)
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+      streamRef.current = stream
+      chunksRef.current = []
+      const recorder = new MediaRecorder(stream)
+
+      recorder.ondataavailable = e => {
+        if (e.data.size > 0) chunksRef.current.push(e.data)
+      }
+      recorder.onstop = async () => {
+        streamRef.current?.getTracks().forEach(t => t.stop())
+        streamRef.current = null
+
+        const recordedBlob = new Blob(chunksRef.current, { type: recorder.mimeType || 'audio/webm' })
+        try {
+          const audioContext = new AudioContext()
+          const arrayBuffer = await recordedBlob.arrayBuffer()
+          const decoded = await audioContext.decodeAudioData(arrayBuffer)
+          const wavBlob = audioBufferToWav(decoded)
+          await audioContext.close()
+
+          const form = new FormData()
+          form.append('id', entryId)
+          form.append('audio', wavBlob, 'pronunciation.wav')
+
+          const res = await fetch(`${API_BASE}/api/ledger/phonemize?userId=${encodeURIComponent(userId)}`, {
+            method: 'POST',
+            body: form,
+          })
+          if (!res.ok) throw new Error(`Backend returned ${res.status}`)
+          const entry: LedgerEntry = await res.json()
+          upsertEntry(entry)
+        } catch {
+          setLedgerError('Phonemization failed. Try recording again.')
+        }
+      }
+
+      mediaRecorderRef.current = recorder
+      recorder.start()
+      setRecordingId(entryId)
+    }).catch(() => {
+      setLedgerError('Microphone permission denied or unavailable.')
+    })
+  }, [recordingId, userId])
 
   return (
     <motion.main
@@ -150,6 +327,12 @@ export default function LedgerPage() {
             Add Term
           </button>
         </motion.div>
+
+        {ledgerError && (
+          <p className="text-caption" style={{ marginTop: 'var(--space-2)' }}>
+            <span className="badge badge--danger">{ledgerError}</span>
+          </p>
+        )}
 
         {/* ─── Add Form ──── */}
         <AnimatePresence>
@@ -270,7 +453,7 @@ export default function LedgerPage() {
                 className={`category-pill ${activeCategory === cat ? 'category-pill--active' : ''}`}
                 onClick={() => setActiveCategory(activeCategory === cat ? null : cat)}
               >
-                {categoryLabels[cat]} ({ledger.filter(e => e.category === cat).length})
+                {categoryLabels[cat]} ({stats.countByCategory[cat]})
               </button>
             ))}
           </div>
@@ -304,7 +487,29 @@ export default function LedgerPage() {
                     layout
                   >
                     <div className="ledger-row__term">
-                      <span className="ledger-row__word">{entry.word}</span>
+                      <button
+                        className="ledger-row__word ledger-row__word-btn"
+                        onClick={() => handlePreview(entry)}
+                        id={`preview-pronunciation-${entry.id}`}
+                        title={`Hear how ${entry.word} is pronounced`}
+                        aria-label={`Hear how ${entry.word} is pronounced`}
+                      >
+                        {entry.word}
+                        {preview.entryId === entry.id && (
+                          <span className="ledger-row__preview-state" aria-hidden="true">
+                            {preview.phase === 'loading'
+                              ? <Loader2 size={12} className="ledger-row__preview-spin" />
+                              : <Volume2 size={12} />}
+                          </span>
+                        )}
+                      </button>
+                      <span className="sr-only" role="status">
+                        {preview.entryId === entry.id
+                          ? (preview.phase === 'loading'
+                              ? `Loading pronunciation of ${entry.word}`
+                              : `Playing pronunciation of ${entry.word}`)
+                          : ''}
+                      </span>
                     </div>
                     <div>
                       <span className={`badge ${categoryColors[entry.category]}`}>
@@ -329,16 +534,37 @@ export default function LedgerPage() {
                         </span>
                       )}
                     </div>
-                    <div>
+                    <div className="ledger-row__status" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
                       {entry.verified ? (
                         <span className="badge badge--success">
                           <Check size={10} /> Verified
                         </span>
                       ) : (
-                        <span className="badge badge--danger">
-                          Pending
-                        </span>
+                        <>
+                          <span className="badge badge--danger">
+                            Pending
+                          </span>
+                          <button
+                            className="btn btn--ghost"
+                            onClick={() => handleToggleRecording(entry.id)}
+                            id={`record-pronunciation-${entry.id}`}
+                            title="Record correct pronunciation"
+                          >
+                            {recordingId === entry.id ? <Square size={12} /> : <Mic size={12} />}
+                            {recordingId === entry.id ? 'Stop' : 'Record'}
+                          </button>
+                        </>
                       )}
+                      <button
+                        className="btn btn--ghost ledger-row__delete"
+                        onClick={() => handleDelete(entry)}
+                        disabled={deletingId === entry.id}
+                        id={`delete-term-${entry.id}`}
+                        title={`Delete ${entry.word} from the ledger`}
+                        aria-label={`Delete ${entry.word} from the ledger`}
+                      >
+                        <Trash2 size={12} />
+                      </button>
                     </div>
                   </motion.div>
                 ))}

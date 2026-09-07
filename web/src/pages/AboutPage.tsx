@@ -203,9 +203,9 @@ export default function AboutPage() {
 
           <div className="team-grid">
             {[
-              { name: 'Team Member', role: 'Full-Stack & Voice Engineering' },
-              { name: 'Team Member', role: 'ML Pipeline & Evidence' },
-              { name: 'Team Member', role: 'Frontend & UX Design' },
+              { name: 'Shyam Kumar J', role: 'Full-Stack & Voice Engineering' },
+              { name: 'Sheshakanth Ra', role: 'ML Pipeline & Evidence' },
+              { name: 'Yaswanth KB', role: 'Frontend & UX Design' },
             ].map((member, i) => (
               <motion.div
                 key={i}
@@ -216,7 +216,7 @@ export default function AboutPage() {
                 viewport={{ once: true }}
               >
                 <div className="team-card__avatar">
-                  {member.name.split(' ').map(n => n[0]).join('')}
+                  {member.name.split(' ').slice(0, 2).map(n => n[0]).join('')}
                 </div>
                 <h4 className="team-card__name">{member.name}</h4>
                 <p className="team-card__role text-caption">{member.role}</p>

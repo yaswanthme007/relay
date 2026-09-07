@@ -255,6 +255,71 @@
   font-size: var(--text-sm);
 }
 
+/* The term is now a pronunciation-preview control. Button chrome is reset
+   to nothing so the row's typography, spacing and rhythm are unchanged —
+   .ledger-row__word above still owns the type. */
+.ledger-row__word-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font-family: inherit;
+  line-height: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: color var(--duration-fast);
+}
+
+.ledger-row__word-btn:hover {
+  color: var(--color-accent-hover);
+}
+
+/* Keyboard focus must be visible — the term is interactive and must not
+   depend on hover alone. */
+.ledger-row__word-btn:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+}
+
+.ledger-row__preview-state {
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-accent);
+}
+
+.ledger-row__preview-spin {
+  animation: ledger-preview-spin 0.9s linear infinite;
+}
+
+@keyframes ledger-preview-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ledger-row__preview-spin { animation: none; }
+}
+
+/* Compact icon-only delete, sharing the existing ghost-button language —
+   no new column, no new component library. */
+.ledger-row__delete {
+  padding: var(--space-1) var(--space-2);
+  color: var(--color-ink-tertiary);
+}
+
+.ledger-row__delete:hover {
+  color: var(--color-danger);
+}
+
+.ledger-row__delete:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 .phoneme-code {
   font-family: var(--font-mono);
   font-size: 11px;
