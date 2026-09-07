@@ -29,8 +29,7 @@ resolve — reported in the Phase 8 final report too):
    more favorable list") and reports the discrepancy rather than editing
    either the claim or the fixture.
 
-2. PHONEME SOURCE. The primary path (RELAY_PLAYBOOK.md §3 / BUILD_PHASES.md
-   Phase 5) is: record a human saying the term correctly -> Phonemize API
+2. PHONEME SOURCE. The primary path (RELAY_PLAYBOOK.md §3, Phase 5) is: record a human saying the term correctly -> Phonemize API
    -> verified phoneme. This execution environment has no microphone and
    no human present to record a reference pronunciation (same disclosed
    limitation as Phase 7's browser/mic testing). RELAY_PLAYBOOK.md §10's

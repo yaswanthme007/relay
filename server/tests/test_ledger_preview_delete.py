@@ -213,7 +213,7 @@ def test_preview_of_missing_entry_errors_without_synthesis(monkeypatch):
 def test_preview_uses_the_voices_py_speaker_mapping(monkeypatch):
     """'Meadow' is not a real mistv2 speaker — server/voices.py maps it to
     'breeze'. Preview goes through that same mapping rather than assuming
-    display name == speaker ID (CLAUDE.md §1)."""
+    display name == speaker ID."""
     test_client, created, _ = _preview_setup(monkeypatch, VERIFIED_ENTRY)
     with _ws(test_client) as ws:
         ws.send_json(_preview_msg("e1", voice="Meadow"))
@@ -226,7 +226,7 @@ def test_preview_uses_the_voices_py_speaker_mapping(monkeypatch):
 def test_preview_uses_mistv2_and_the_bracket_phoneme_flags():
     """Preview reuses RimeSpeechClient unchanged, so every preview request
     carries modelId=mistv2 — omitting it silently routes to Mist v3, which
-    ignores {phoneme} strings entirely (CLAUDE.md §1)."""
+    ignores {phoneme} strings entirely."""
     url = _connection_url("breeze")
     assert "modelId=mistv2" in url
     assert "phonemizeBetweenBrackets=true" in url

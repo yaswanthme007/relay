@@ -1,6 +1,6 @@
 # RELAY — Rime Evidence
 
-Acceptance-test claims and procedures, committed before the build so git history proves the tests predated the results (`CLAUDE.md` §6). Results are filled in during Phase 8, exactly as measured — a disappointing result gets recorded honestly, not a rewritten claim.
+Acceptance-test claims and procedures, committed before the build so git history proves the tests predated the results. Results are filled in during Phase 8, exactly as measured — a disappointing result gets recorded honestly, not a rewritten claim.
 
 ---
 

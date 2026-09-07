@@ -7,7 +7,7 @@ import pytest
 from server.prosody import PAUSE_MARKER, apply_prosody, decide_delivery
 
 
-# ─── exact boundary routing (BUILD_PHASES.md Phase 6 §4) ───────────────────
+# ─── exact boundary routing (Phase 6) ──────────────────────────────────────
 
 @pytest.mark.parametrize("confidence,expected", [
     (1.00, "statement"),
@@ -24,7 +24,7 @@ def test_decide_delivery_exact_boundaries(confidence, expected):
 
 def test_boundaries_do_not_use_wrong_comparison_operators():
     # >= 0.85 would wrongly make 0.85 a statement; > 0.50 would wrongly make
-    # 0.50 silent. Both are explicitly forbidden by BUILD_PHASES.md §4.
+    # 0.50 silent. Both are explicitly forbidden.
     assert decide_delivery(0.85) != "statement"
     assert decide_delivery(0.50) != "silent"
 

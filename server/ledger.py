@@ -96,8 +96,7 @@ def _row_to_entry(row: sqlite3.Row) -> LedgerEntry:
 
 
 def get_ledger(user_id: str) -> list[LedgerEntry]:
-    """This user's entries only — never another user's (BUILD_PHASES.md
-    Phase 5 §3)."""
+    """This user's entries only — never another user's."""
     with _connect() as conn:
         rows = conn.execute(
             "SELECT id, word, phoneme, category, covered, verified "
@@ -156,7 +155,7 @@ def delete_entry(user_id: str, entry_id: str) -> bool:
 
 async def create_entry(user_id: str, word: str, category: LedgerCategory) -> LedgerEntry:
     """Same user + same normalized word -> returns/updates the existing
-    entry rather than creating a duplicate (BUILD_PHASES.md Phase 5 §17).
+    entry rather than creating a duplicate.
     Different users adding the same word get their own independent rows."""
     normalized = normalize_word(word)
 
@@ -196,9 +195,8 @@ async def create_entry(user_id: str, word: str, category: LedgerCategory) -> Led
 async def set_phoneme(user_id: str, entry_id: str, audio_bytes: bytes, content_type: str = "audio/wav") -> Optional[LedgerEntry]:
     """Real Phonemize call, then store + mark verified. Returns None if the
     entry doesn't exist or belongs to a different user (caller maps that to
-    404 — never let one user phonemize another's entry, BUILD_PHASES.md
-    Phase 5 §15). verified is set to True only after the phoneme result is
-    actually in hand — never before (§16)."""
+    404 — never let one user phonemize another's entry). verified is set to
+    True only after the phoneme result is actually in hand — never before."""
     row = _get_own_entry(user_id, entry_id)
     if row is None:
         return None
@@ -308,7 +306,7 @@ def inject_pronunciations(text: str, ledger_entries: list[LedgerEntry]) -> str:
     `{phoneme}` bracket string, ready for mistv2 + phonemizeBetweenBrackets.
 
     Only `verified == True AND phoneme != ""` entries are eligible
-    (BUILD_PHASES.md Phase 5 §19) — a covered-but-unverified term is left as
+    — a covered-but-unverified term is left as
     plain text and spoken with Rime's model-predicted pronunciation
     instead; an unverified term never gets a fabricated phoneme string.
 
@@ -331,7 +329,7 @@ async def seed_demo_ledger_if_empty() -> None:
     """Seed DEMO_USER_ID's ledger from evidence/fixtures/vocabulary.json —
     once. If that user already has rows (a prior run seeded it, or a demo
     session has since edited it), do nothing: never reseed duplicates,
-    never overwrite user-modified state (BUILD_PHASES.md Phase 5 §10, §30).
+    never overwrite user-modified state.
     Real Coverage calls happen during seeding; a failure for one term is
     logged and that term is skipped rather than crashing startup."""
     with _connect() as conn:

@@ -6,7 +6,7 @@ live voice catalog (https://users.rime.ai/data/voices/all-v2.json, mistv2
 block) at Phase 4 implementation time: 'ember', 'cove', 'grove', and
 'summit' are real mistv2 speaker IDs (display name lowercased == speaker
 ID) — but 'meadow' is not in the catalog under any model. Do not assume
-display name == speaker ID without checking, per CLAUDE.md §1.
+display name == speaker ID without checking.
 
 Mapped 'Meadow' to 'breeze' (present in the mistv2 catalog, same pastoral/
 open-air register as the other four) rather than silently 404ing or

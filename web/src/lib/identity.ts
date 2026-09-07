@@ -1,5 +1,5 @@
-// Shared anonymous user identity (no login system — CLAUDE.md: don't invent
-// one). Extracted from SessionPage.tsx in Phase 5 so LedgerPage.tsx uses
+// Shared anonymous user identity (no login system — deliberately not
+// invented). Extracted from SessionPage.tsx in Phase 5 so LedgerPage.tsx uses
 // the exact same id: the ledger and the reconstruction/TTS paths must agree
 // on who "the current user" is, or ledger entries and reconstruction
 // context would silently belong to different identities.
@@ -24,7 +24,7 @@ export function getOrCreateUserId(): string {
 // This is a display name ('Meadow', 'Ember', ...), not a Rime speaker ID.
 // server/voices.py owns that mapping and is the only place it happens —
 // display name is deliberately NOT assumed to equal the speaker ID
-// (CLAUDE.md §1).
+// checked against Rime's live catalog rather than assumed.
 const VOICE_KEY = 'relay-voice-name'
 
 // Matches SessionPage's original default exactly, so a browser that has

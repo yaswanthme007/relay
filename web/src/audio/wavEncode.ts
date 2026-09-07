@@ -1,5 +1,5 @@
 // Minimal 16-bit PCM WAV encoder. The ledger's pronunciation-recording path
-// needs WAV (BUILD_PHASES.md Phase 5 §29 — Rime's Phonemize endpoint takes
+// needs WAV (Phase 5 — Rime's Phonemize endpoint takes
 // raw WAV/MP3 bytes, not the WebM/Opus MediaRecorder produces), and
 // MediaRecorder cannot emit WAV directly in Chromium. Rather than pull in
 // an audio-encoding library for this one conversion, decode the recorded

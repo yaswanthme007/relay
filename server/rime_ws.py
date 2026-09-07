@@ -21,7 +21,7 @@ Rime echoes contextId on its responses but does not itself run multiple
 simultaneous contexts or fence stale ones — that discard/fencing logic is
 RELAY's own responsibility (Phase 7). This module only tracks per-context
 counts (chunksReceived, bytesReceived, stale flag) so Phase 7 has
-something to build fencing on top of, per BUILD_PHASES.md Phase 4."""
+something to build fencing on top of, per Phase 4."""
 
 import base64
 import json
@@ -33,7 +33,7 @@ import websockets
 from server.config import settings
 
 RIME_WS_URL = "wss://users-ws.rime.ai/ws3"
-MODEL_ID = "mistv2"  # never omit — CLAUDE.md §1: omitting it silently routes to Mist v3
+MODEL_ID = "mistv2"  # never omit — omitting it silently routes to Mist v3
 
 
 class RimeStreamError(Exception):
@@ -66,9 +66,9 @@ def _connection_url(speaker: str) -> str:
 
 
 class RimeSpeechClient:
-    """One Rime ws3 connection per RELAY speech session (BUILD_PHASES.md
-    Phase 4). Opened lazily on the first `speak()`, reused for subsequent
-    turns in the same browser session, closed when the session ends."""
+    """One Rime ws3 connection per RELAY speech session (Phase 4).
+    Opened lazily on the first `speak()`, reused for subsequent turns in
+    the same browser session, closed when the session ends."""
 
     def __init__(self, speaker: str):
         self.speaker = speaker
@@ -126,8 +126,7 @@ class RimeSpeechClient:
     async def clear(self) -> Optional[str]:
         """Cancel whatever is currently generating. Returns the contextId
         that was marked stale (if any). This is protocol plumbing only —
-        full stale-chunk discard/flush-timing semantics are Phase 7's job
-        (BUILD_PHASES.md §21)."""
+        full stale-chunk discard/flush-timing semantics are Phase 7's job."""
         if self._ws is None or self.current_context_id is None:
             return None
         stale_id = self.current_context_id
@@ -142,7 +141,7 @@ class RimeSpeechClient:
         """Yield decoded server events for as long as the connection is
         open: {"type": "chunk"|"done"|"error", "contextId": ..., ...}.
         Audio bytes are forwarded per-message, immediately — never
-        accumulated into a full clip (CLAUDE.md §4)."""
+        accumulated into a full clip."""
         if self._ws is None:
             return
         try:
@@ -166,8 +165,7 @@ class RimeSpeechClient:
                         if ctx.stale:
                             ctx.discarded_chunks += 1
                             # Never forwarded as playable audio, but never
-                            # silently dropped either (CLAUDE.md §4, phase7
-                            # prompt §18/§20): surface the updated count so
+                            # silently dropped either: surface the updated count so
                             # session_ws can push a fresh context_cleared to
                             # the browser for every late chunk, not just the
                             # ones that happened to arrive before clear()

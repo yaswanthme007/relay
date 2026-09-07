@@ -31,8 +31,7 @@ interface HeardEntry {
 // mockCandidates removed in Phase 3 — candidates now come from POST /api/turn.
 // mockHeardLog removed in Phase 7 — heardLog is now fed by real heard_entry
 // events, themselves built from actual browser playback state (never a
-// fake completion just because a candidate was selected: CLAUDE.md/phase7
-// prompt §31).
+// fake completion just because a candidate was selected).
 
 /* ─── Backend wire contract (Phase 2: /api/turn only) ────── */
 interface TurnResponse {
@@ -146,8 +145,8 @@ export default function SessionPage() {
   const preloadedVoiceRef = useRef<string | null>(null)
   const floorHoldTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   // The candidate text a not-yet-bound speak() call is waiting to attach to
-  // the next contextId the server hands back (BUILD_PHASES.md appendix:
-  // the server never echoes a contextId synchronously from speak() itself).
+  // the next contextId the server hands back (the server never echoes a
+  // contextId synchronously from speak() itself).
   const pendingSpeakRef = useRef<{ text: string } | null>(null)
   const activeContextRef = useRef<{ contextId: string; text: string } | null>(null)
   // Contexts explicitly barged-in on — a chunk that still arrives for one
@@ -342,7 +341,7 @@ export default function SessionPage() {
       // continuous VAD, so end-of-turn is the mic-release gesture. Recorded
       // on AudioContext's own clock so it's directly comparable to the
       // first-audio-scheduled timestamp (both real Web Audio timing, not
-      // wall-clock — CLAUDE.md §4 / phase7 prompt §37).
+      // wall-clock).
       recordTurnEnd(audioContextRef.current?.currentTime ?? 0)
       mediaRecorderRef.current?.stop()
       return
@@ -416,7 +415,7 @@ export default function SessionPage() {
 
     // Phase 7: whatever is currently audible — a floor-hold phrase, or a
     // previously selected candidate the user is now overriding — is
-    // fenced and flushed first (BUILD_PHASES.md WOW #4). A genuine "cut"
+    // fenced and flushed first. A genuine "cut"
     // Heard Receipt entry is produced only if real candidate audio was
     // actually playing; a flushed floor-hold phrase produces none.
     bargeIn()

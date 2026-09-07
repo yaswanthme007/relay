@@ -2,8 +2,8 @@
 a deterministic delivery decision (and, for the question path, the text
 transformation Rime needs) — independent of FastAPI, Rime, and the ledger.
 
-Thresholds mirror the frontend exactly (CLAUDE.md §2 /
-web/src/pages/SessionPage.tsx's getConfidenceLabel/getDeliveryMode) —
+Thresholds mirror the frontend exactly
+(web/src/pages/SessionPage.tsx's getConfidenceLabel/getDeliveryMode) —
 this is not a second, competing threshold system:
 
     > 0.85   -> statement
@@ -52,7 +52,7 @@ def apply_prosody(text: str, confidence: float) -> ProsodyResult:
     punctuation.
 
     question (0.5-0.85): there is no uncertain-span field on Candidate
-    (text, confidence, reasoning only — CLAUDE.md §2), so this uses the
+    (text, confidence, reasoning only), so this uses the
     playbook's other documented form, a whole-candidate confirmation:
     "<300>{text}?" — pause before the whole utterance, terminal punctuation
     normalized to a single "?" so Rime's rising intonation applies to the
